@@ -80,6 +80,16 @@ skills/everinbox/
 
 Ao alterar o plugin, **suba a `version` no `.claude-plugin/plugin.json`** — sem isso quem já instalou não recebe a atualização.
 
+### Quando o connector ganhar tools novas
+
+`tools/manifest.txt` lista as tools do connector. O script `scripts/check-coverage.mjs` compara a documentação contra ele, nos dois sentidos: tool do manifesto que ninguém documentou, e nome citado que não existe (erro de digitação faz o Claude tentar chamar uma tool inexistente, e nada avisa).
+
+O endpoint exige autenticação, então não dá para enumerar automaticamente. Com o connector ligado no Claude Code, peça a lista de tools, atualize o manifesto (um nome por linha) e documente o que entrou:
+
+```bash
+node scripts/check-coverage.mjs
+```
+
 Antes de abrir PR:
 
 ```bash
