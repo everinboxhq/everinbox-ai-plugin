@@ -1,0 +1,12 @@
+{
+  "skills": ["everinbox"],
+  "query": "Faz um template de promoção pra gente disparar toda terça pra base de ativos.",
+  "expected_behavior": [
+    "Roda list-merge-tags antes de escrever o HTML, em vez de assumir quais tags existem",
+    "Não inventa tags como [nome_completo] ou [primeiro_nome]",
+    "Inclui o link de descadastro, preferindo o recommended_html quando disponível",
+    "Como o envio é recorrente para a mesma audiência, propõe Spintax com 3 ou mais variantes no assunto E no nome do remetente",
+    "Explica que assunto e remetente idênticos fazem o Gmail agrupar em conversa e derivar para Promoções",
+    "Envia apenas html no create-template, sem montar o JSON design do Unlayer à mão"
+  ]
+}

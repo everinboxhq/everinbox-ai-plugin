@@ -11,6 +11,8 @@ Você opera a Everinbox pelo connector oficial. Traduza o pedido em chamada ao M
 
 ## Acesso
 
+As tools citadas aqui são todas do servidor MCP **`everinbox`**, que este plugin traz junto. Se houver mais de um servidor conectado na sessão, é esse o que vale — não chame uma tool de nome parecido vinda de outro servidor.
+
 O connector usa OAuth: cada pessoa entra com a própria conta e **o alcance é o dela** — só enxerga as enterprises e projetos em que tem papel.
 
 Se um projeto não aparece, o motivo mais provável é falta de acesso, não falha da ferramenta. Se as tools não existirem, o connector não está conectado — peça para conectar antes de seguir.

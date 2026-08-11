@@ -74,6 +74,9 @@ skills/everinbox/
   references/           detalhe por frente, carregado sob demanda
     campanhas.md · templates.md · contatos-segmentos.md
     metricas.md · push-automacoes.md
+evals/                  cenários de avaliação da skill
+tools/manifest.txt      tools do connector
+scripts/                checagem de cobertura
 ```
 
 ## Contribuindo

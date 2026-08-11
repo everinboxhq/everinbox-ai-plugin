@@ -1,0 +1,11 @@
+{
+  "skills": ["everinbox"],
+  "query": "Quantos contatos tem a minha lista principal?",
+  "expected_behavior": [
+    "Não inventa project_id nem list_id",
+    "Descobre pela ordem correta: list-enterprises, depois list-projects, depois list-lists",
+    "Se houver mais de um projeto ou lista candidata, pergunta qual em vez de escolher sozinho",
+    "Se nada aparecer, considera falta de acesso da conta antes de concluir que a ferramenta falhou",
+    "Responde o número de forma direta, sem despejar JSON cru"
+  ]
+}

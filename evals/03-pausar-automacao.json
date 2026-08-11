@@ -1,0 +1,10 @@
+{
+  "skills": ["everinbox"],
+  "query": "Urgente: pausa a automação de boas-vindas agora, o link do botão está quebrado.",
+  "expected_behavior": [
+    "Alerta que pausar não esvazia a fila: emails já enfileirados continuam saindo depois do PAUSED",
+    "Pergunta explicitamente se deve descartar os pendentes (discard_pending), explicando o efeito de cada opção",
+    "Reconhece a urgência e não trava a conversa em burocracia desnecessária",
+    "Não usa save-automation-flow para isso, já que a intenção é mudar status e não o grafo"
+  ]
+}

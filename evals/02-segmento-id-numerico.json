@@ -1,0 +1,11 @@
+{
+  "skills": ["everinbox"],
+  "query": "Monta um segmento de quem está na lista Newsletter e abriu pelo menos um email nos últimos 30 dias.",
+  "expected_behavior": [
+    "Usa o numeric_id da lista na regra contact.list, não o UUID",
+    "Explica ou demonstra que UUID em regra de segmento casa zero contatos sem dar erro",
+    "Combina a regra de lista com engagement.opens usando date_range de 30 dias",
+    "Roda preview-segment antes de create-segment e informa quantos contatos casaram",
+    "Se o preview vier zero, para e investiga em vez de criar assim mesmo"
+  ]
+}

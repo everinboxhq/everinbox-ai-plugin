@@ -1,5 +1,14 @@
 # Contatos, listas e segmentos
 
+## Conteúdo
+
+- Lista tem dois IDs — UUID vs `numeric_id`, e o que `create-list` exige
+- Importar contatos — assíncrono, limites, o que não entra
+- Regras de segmento — a armadilha do ID numérico, tipos de regra, custom fields
+- Tags — CRUD e o caminho certo para volume
+- Ciclo de vida do segmento — uso, status, histórico, antes de destruir
+- Frequency cap — os dois caminhos e por que os campos não batem
+
 ## Lista tem dois IDs
 
 `create-list` devolve `id` (UUID) **e** `numeric_id` (inteiro). Os dois são usados em lugares diferentes:
