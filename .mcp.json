@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "everinbox": {
+      "type": "http",
+      "url": "https://core.mcp.everinbox.com.br/mcp"
+    }
+  }
+}

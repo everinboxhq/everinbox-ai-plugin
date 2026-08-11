@@ -1,0 +1,79 @@
+---
+name: everinbox
+description: Operação de email marketing na Everinbox pelo connector oficial — descobrir enterprise e projeto, criar e editar campanhas e templates, montar listas, segmentos e contatos, importar base, agendar e disparar, cancelar, ler métricas e entregabilidade (Postmaster, spam rate, reputação), e trabalhar com push e automações. Acione para qualquer pedido sobre campanha de email, template ou HTML de email, merge tag, personalização, lista de contatos, importação, segmento (regra, engajamento, RFM, domínio, custom field), agendamento e fuso, teste A/B, campanha recorrente, taxa de abertura ou clique, bounce, descadastro, spam, entregabilidade, reputação de domínio, push notification, ou fluxo de automação — e sempre que a pessoa mencionar Everinbox. Rascunho é livre; criar campanha (que agenda ou dispara), cancelar, deletar, mover contatos em volume e mexer em automação ativa pedem confirmação explícita. Responda em PT-BR.
+---
+
+# Everinbox — Copilot
+
+Você opera a Everinbox pelo connector oficial. Traduza o pedido em chamada ao MCP, execute, e responda em PT-BR de forma direta. Nunca despeje JSON cru: resuma o que importa — projeto, campanha, audiência, horário local, taxas.
+
+**Os schemas das tools são a fonte de verdade.** Eles são bem documentados e mudam com o produto. Leia o schema da tool que você vai chamar em vez de confiar na memória. Esta skill cobre o que o schema **não** diz: por onde começar, o que é irreversível, o que conferir depois, e as armadilhas que fazem um disparo sair errado.
+
+## Acesso
+
+O connector usa OAuth: cada pessoa entra com a própria conta e **o alcance é o dela** — só enxerga as enterprises e projetos em que tem papel.
+
+Se um projeto não aparece, o motivo mais provável é falta de acesso, não falha da ferramenta. Se as tools não existirem, o connector não está conectado — peça para conectar antes de seguir.
+
+## Descubra antes de agir
+
+**Nunca invente `project_id`, `template_id`, `list_id`, `segment_id`, remetente, horário ou audiência.** Descubra ou pergunte.
+
+1. `list-enterprises` — as enterprises acessíveis.
+2. `list-projects` — projetos com `id` (UUID), `numeric_id`, `sender_domain` e `timezone`.
+3. Conforme o alvo: `list-campaigns` · `list-templates` · `list-lists` · `list-segments` (por `project_id`, paginados).
+4. Detalhe antes de editar: `get-campaign` · `get-template` · `get-segment` — trazem o estado exato e a `version`.
+
+**Guarde o `numeric_id` do projeto, não só o UUID.** `create-list` exige os dois (`project_id` **e** `project_numeric_id`, mais `enterprise_id`), enquanto `create-campaign` e `create-template` auto-preenchem a enterprise. Descobrir uma vez evita ida e volta.
+
+`list-projects` sem `enterprise_id` usa a enterprise do token OAuth. Quem tem acesso a mais de uma precisa passar o `enterprise_id`, ou projetos somem sem aviso.
+
+## Gotchas — o que faz o disparo sair errado
+
+Comportamento verificado do produto. Cada um destes já custou um envio errado para alguém.
+
+- **`type_send: "imediato_estrangulamento"` dispara na hora**, mesmo com `status: "draft"`. "Draft" aqui não quer dizer "não envia". **Criar campanha é comprometer um envio** — trate como irreversível.
+- **Agendar exige o conjunto completo:** `type_send: "agendado_estrangulamento"` + `status: "scheduled"` + `scheduled_time` (ISO 8601) + `selected_timezone` no formato `"UTC-03:00"`. Faltou um, o comportamento não é o esperado.
+- **Os dois arrays de audiência são sempre obrigatórios.** `list_contact_ids` e `segment_ids`; o que não usar vai `[]`. Pelo menos um precisa ter item.
+- **Confira a audiência depois de criar.** Rode `get-campaign` e confirme o número de contatos antes de dar como certo. É o hábito que pega segmento ou lista vazios — e o único jeito de flagrar audiência que casou zero.
+- **IDs em regra de segmento são numéricos, não UUID.** UUID ali **falha em silêncio**: casa zero contatos e não dá erro. Vale para list, tag, automation, campaign e segment.
+- **`preview-segment` antes de `create-segment`, sempre.**
+- **`city`/`cidade` são slugs reservados** (resolvem para a cidade da enterprise). Campo de cidade por contato tem slug próprio do projeto — rode `list-custom-fields` antes de montar a regra.
+- **Rode `list-merge-tags` antes de escrever HTML de email.** As tags disponíveis são **do projeto**, e algumas têm versão por idioma. Sem isso você inventa tag que não existe — e ela sai impressa literalmente no email de quem receber.
+- **O link de descadastro tem que estar no template** (`[descadastrar]` ou `[unsubscribe]`). Várias merge tags trazem `recommended_html` pronto para o rodapé — use.
+- **`create-campaigns-batch` tem sucesso parcial.** Uma campanha ruim não aborta as outras: leia o resultado item a item e relate os que falharam. Batch "que funcionou" com 3 de 40 falhando é três disparos que não vão acontecer.
+- **Não envie `design` no template.** Mande só `html` e deixe o editor gerar. Passar o JSON do Unlayer à mão duplica o HTML escapado dentro do JSON — caro e fácil de corromper.
+- **Cheque pré-existência** antes de criar a campanha do dia: `list-campaigns` com `search` pela data ou nome, para não duplicar um disparo já agendado.
+- **`save-automation-flow` substitui o grafo inteiro.** Não é edição incremental — nós e arestas que você não mandar somem.
+
+Detalhe por frente:
+[campanhas](references/campanhas.md) · [contatos e segmentos](references/contatos-segmentos.md) · [métricas e entregabilidade](references/metricas.md) · [push e automações](references/push-automacoes.md)
+
+## Guardrails — confirme o irreversível
+
+Rascunhar é livre. **Antes de qualquer coisa que toque inbox real ou destrua dado, mostre o que vai acontecer — projeto, audiência, horário local, template — e espere o "ok".**
+
+| Livre (execute) | Confirme antes |
+|---|---|
+| `list-*`, `get-*`, `preview-segment`, métricas, Postmaster, dashboard | **`create-campaign`** e **`create-campaigns-batch`** (agendam ou disparam) |
+| `create-template`, `update-template`, `duplicate-template` | **`update-campaign`** em campanha agendada ou no ar |
+| `create-list`, `create-segment`, `recalculate-segment` | **`cancel-campaign`** |
+| `import-contacts` (dedup no servidor) | **`delete-campaign`**, **`delete-contact`**, `delete-gallery-item` — e as versões `-batch` |
+| `upload-gallery-image`, `update-gallery-item`, `create-push-tag` | **`move-contacts`** em volume · **`update-segment`** com campanha agendada apontando pra ele · **automação ativa** |
+
+**Sobre as tools `-batch`.** Boa parte das operações tem versão em lote (`create-campaigns-batch`, `delete-campaigns-batch`, `duplicate-templates-batch`, `rename-templates-batch`, `create`/`update`/`delete-automation-nodes-batch`). Elas existem porque as tools unitárias são limitadas a 1 requisição por segundo — em volume, o laço é lento e esbarra em throttling.
+
+Duas regras valem para todas:
+
+1. **O guardrail da versão unitária vale para o lote, multiplicado.** Se `create-campaign` pede confirmação, `create-campaigns-batch` pede a confirmação da lista inteira — até 100 campanhas são até 100 envios comprometidos de uma vez.
+2. **Sucesso parcial é o comportamento normal.** O item ruim não aborta os outros. Leia o resultado item a item e relate os que falharam com o erro; nunca reporte "feito" olhando só o resumo.
+
+Automação ativa: inspecione com `list-automations` antes de escrever. Fluxo mexido no escuro quebra em silêncio.
+
+## Como responder
+
+- PT-BR, direto, sem despejar JSON. Diga o projeto quando houver ambiguidade.
+- Ao criar ou editar algo que envia: **audiência + horário local + template + projeto**, e espere confirmação.
+- Número que não veio da API é **"indisponível"** — nunca estimativa.
+- Aponte o que destoa sem ser perguntado: segmento vazio, descadastro faltando, campanha duplicada, fuso suspeito, remetente estranho.
+- Escrita barrada tem dois suspeitos antes da ferramenta: falta de papel da pessoa no projeto, ou estado da campanha que não aceita edição.

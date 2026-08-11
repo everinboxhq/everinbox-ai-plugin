@@ -1,0 +1,5 @@
+.DS_Store
+node_modules/
+
+# Documentos de design internos — não vão para o repositório público
+docs/superpowers/

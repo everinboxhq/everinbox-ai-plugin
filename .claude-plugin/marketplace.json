@@ -1,0 +1,29 @@
+{
+  "name": "everinbox-ai",
+  "description": "Plugins de IA da Everinbox para Claude Code. O copilot do connector oficial de email marketing.",
+  "owner": {
+    "name": "Everinbox",
+    "url": "https://github.com/everinboxhq"
+  },
+  "plugins": [
+    {
+      "name": "everinbox",
+      "source": "./",
+      "displayName": "✉️ Everinbox — Copilot",
+      "description": "Copilot do connector Everinbox: campanhas, templates, listas, segmentos, contatos, agendamento e disparo, métricas e entregabilidade, push e automações. Traz a ordem de descoberta, as armadilhas do schema e os guardrails do que é irreversível. O connector vem junto — no primeiro uso o login abre sozinho.",
+      "category": "produto",
+      "keywords": [
+        "everinbox",
+        "email",
+        "campanha",
+        "template",
+        "segmento",
+        "contatos",
+        "entregabilidade",
+        "postmaster",
+        "push",
+        "automacao"
+      ]
+    }
+  ]
+}
