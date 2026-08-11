@@ -69,12 +69,53 @@ Operadores por tipo:
 
 Para apagar contato: `delete-contact` e `delete-contacts-batch`. Não têm volta — confirme sempre, e prefira mover para uma lista de descarte quando a intenção for só tirar de circulação.
 
-## Frequency cap
+## Tags
 
-`create-segment` aceita `frequency_cap` opcional: limites por dia, semana e mês, dias permitidos, janela de horário (`send_start_hour`/`send_end_hour`) e `timezone` (`"project"` ou `"contact"`).
+Tag é rótulo de contato — a forma mais leve de agrupar sem criar lista nova. Entram em regra de segmento via `contact.tag`.
 
-Presets: `ativos`, `mornos`, `frios`, `quase_mortos`.
+CRUD: `list-tags`, `get-tag`, `create-tag`, `update-tag`, `duplicate-tag`, `delete-tag`.
 
-**Só persiste com `enabled: true`** — mandar `enabled: false` ou omitir limpa a configuração.
+Para ligar contato e tag existem dois caminhos, e escolher errado custa chamadas:
 
-Contatos barrados pelo cap aparecem em `get-campaign-frequency-cap-blocked`. Vale olhar quando a audiência entregue veio menor que a esperada: pode não ser erro, pode ser o cap funcionando.
+- **`assign-tags-to-contacts`** — várias tags em vários contatos, numa chamada. É o caminho certo para volume.
+- **`add-contacts-to-tag`** / **`remove-contacts-from-tag`** — uma tag por vez.
+- **`remove-tags-from-contacts`** — o inverso do assign, em lote.
+
+**Os IDs aqui são numéricos**, tanto `contact_ids` quanto `tag_ids` — mesma regra dos segmentos. IDs muito grandes podem vir como string numérica; UUID não serve.
+
+Consulta: `get-contact-tags` (as tags de um contato) e `get-tag-contacts` (os contatos de uma tag).
+
+Antes de apagar uma tag, lembre que ela pode estar dentro de regra de segmento ativa — apagar muda silenciosamente quem o segmento casa.
+
+## Ciclo de vida do segmento
+
+| Pergunta | Tool |
+|---|---|
+| Quem está nele? | `get-segment-contacts` |
+| Já terminou de processar? | `get-segment-status` |
+| **Onde ele é usado?** | `get-segment-usage` |
+| O que mudou nele? | `get-segment-history` |
+
+**`get-segment-usage` antes de apagar ou editar pesado.** Ele mostra as campanhas e automações que referenciam o segmento — é literalmente o raio de alcance da mudança. Segmento que parece órfão costuma estar dentro de uma automação ativa.
+
+`duplicate-segment` é o caminho seguro para experimentar regra nova sem mexer no que está em uso. `archive-segments` tira de circulação sem destruir; `delete-segment` apaga (confirme, e só depois de ver o `usage`).
+
+Segmento grande não fica pronto na hora: **`get-segment-status` antes de usar** em campanha, senão você agenda em cima de um segmento ainda processando.
+
+## Frequency cap: dois caminhos, campos diferentes
+
+O cap limita quantos emails os contatos de um segmento podem receber. Dá para configurar de dois jeitos — e **os nomes dos campos não batem entre eles**:
+
+| | Inline no `create-segment` | Tool dedicada `set-segment-frequency-cap` |
+|---|---|---|
+| Janela | `send_start_hour` / `send_end_hour` | `window_start_time` / `window_end_time` (`"HH:MM"`) |
+| Fuso | `timezone` | `timezone_mode` |
+| Dias | `allowed_days` como texto (`['mon','tue']`) | `allowed_days` como **números** (0=domingo … 6=sábado) |
+
+Use a tool dedicada para mexer só no cap sem tocar nas regras do segmento. Ela exige **pelo menos um** entre `max_per_day`, `max_per_week` e `max_per_month` — sem nenhum, a API recusa.
+
+`apply-segment-frequency-cap-preset` aplica um preset nomeado (`ativos`, `mornos`, `frios`, `quase_mortos`); `list-frequency-cap-presets` mostra quais existem de fato no projeto. `get-segment-frequency-cap` lê o atual e `delete-segment-frequency-cap` remove.
+
+O cap inline **só persiste com `enabled: true`** — mandar `enabled: false` ou omitir limpa a configuração.
+
+Quando a audiência entregue vier menor que a esperada, cheque `get-campaign-frequency-cap-blocked` antes de procurar bug: pode ser o cap funcionando como configurado.

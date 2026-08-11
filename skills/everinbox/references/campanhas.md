@@ -47,43 +47,6 @@ Cada projeto tem seu próprio `timezone` (veja em `list-projects`); não assuma 
 
 O enum de `status` em `update-campaign` é maior que no create — inclui `active`, `completed`, `paused`, `ab_test_awaiting`. **Leia o estado com `get-campaign` antes de tentar editar**; erro de estado costuma voltar sem explicação clara.
 
-## Templates
-
-Obrigatórios: `project_id`, `name`, `html`, `subject`, `sender_name`. A enterprise é auto-preenchida.
-
-**Sobre o `design` (JSON do editor Unlayer): não envie.** Mandando só `html`, o design é gerado — um bloco único que o editor abre normalmente. Só passe `design` quando você tem um layout autoral do editor que precisa preservar literalmente (copiado de um `get-template`).
-
-**A resposta do create/update é enxuta e não devolve `html` nem `design`.** Para ler o conteúdo, `get-template`.
-
-### Merge tags: rode `list-merge-tags` antes de escrever o HTML
-
-A personalização é por tag entre colchetes (`[nome]`, `[email]`, `[data_de_hoje]`), dentro de `html`, `subject` ou `pre_header`.
-
-**As tags disponíveis são do projeto, não universais.** `list-merge-tags` devolve as que existem de verdade ali — as de sistema **e** os campos customizados daquele projeto. Chame antes de gerar qualquer HTML: é o que impede inventar `[nome_completo]` ou `[primeiro_nome]`, que não existem e saem impressas literalmente no email.
-
-A resposta vem em dois grupos:
-
-- **`system`** — tags da plataforma. Algumas têm versão por idioma, e o `locale` indica o idioma do **valor renderizado**: `[dia_hoje]` → "segunda-feira", `[day_today]` → "Monday", `[dia_actual]` → "lunes". Tags com o mesmo `concept` apontam para a mesma informação em idiomas diferentes — **escolha a que bate com o idioma do template**, senão o email sai misturado. Tag sem `locale` rende igual em qualquer idioma (email, IDs, UTMs, dado cru do contato).
-- **`custom`** — campos criados pelo projeto, com o tipo e, em select/multi_select, as opções válidas.
-
-Algumas tags trazem **`recommended_html`**, um bloco pronto — é o caso do rodapé de descadastro. Use esse bloco como base em vez de escrever o seu.
-
-**O descadastro é obrigatório.** Template sem ele é problema de entregabilidade e de lei — sinalize antes de deixar seguir.
-
-Ao explicar as tags para a pessoa, use linguagem natural ("o primeiro nome do contato"), não os nomes técnicos de categoria ou tipo de campo.
-
-`pre_header` é o texto de preview no cliente de email. Vale a pena: é a segunda linha que a pessoa lê.
-
-## Imagens: a galeria do projeto
-
-`list-gallery-items` lista as imagens do projeto com busca por nome (`search`), filtro por `tags`, `mime_type` e data, e ordenação por `recently_used`, `recently_uploaded`, `most_used` ou `size_desc`. Cada item traz `url`, dimensões, tamanho, `used_count` e `last_used_at`.
-
-Antes de subir imagem nova, **procure na galeria** — reaproveitar evita duplicata e mantém o peso do email baixo.
-
-`get-gallery-item-usage` mostra onde uma imagem está sendo usada. **Rode antes de apagar ou trocar**: imagem em uso em template ativo quebra o email de quem receber depois.
-
-`upload-gallery-image` sobe, `update-gallery-item` edita metadados e tags, `delete-gallery-item` apaga (confirme antes). Por padrão a listagem esconde arquivados e apagados.
-
 ## Criar muitas campanhas de uma vez
 
 `create-campaigns-batch` cria de 1 a 100 campanhas numa chamada só. Existe por um motivo prático: **`create-campaign` é limitada a 1 requisição por segundo**, então criar em laço é lento e esbarra em throttling.

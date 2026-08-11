@@ -62,8 +62,36 @@ Para nó isolado, as tools de nó são mais seguras: `create-automation-node`, `
 |---|---|
 | `list-*`, `get-*` de push e automação | `create-push-campaign` (agenda um envio) |
 | `create-push-tag`, `add-push-domain` | `update-push-campaign` em campanha agendada |
-| `duplicate-automation` | **`save-automation-flow`** — substitui o grafo |
-| | `update`/`delete-automation-node` em fluxo **ativo** |
-| | `delete-push-campaign` |
+| `duplicate-automation`, `list-automation-node-types` | **`save-automation-flow`** — substitui o grafo |
+| `get-automation-flow`, métricas de automação | `update`/`delete-automation-node` em fluxo **ativo** |
+| | **`set-automation-status`** — ligar, e principalmente pausar com `discard_pending` |
+| | `delete-automation`, `delete-push-campaign` |
 
 Ao mexer em automação ativa, diga o que vai mudar em linguagem de fluxo ("o ramo de quem não abriu em 3 dias passa a esperar 5"), não em JSON. Quem aprova precisa entender o efeito, não o payload.
+
+## Automação: o ciclo completo
+
+`create-automation` cria; `get-automation` traz o cabeçalho; `get-automation-flow` traz o grafo (nós e arestas); `update-automation` altera o cabeçalho; `delete-automation` apaga.
+
+**`list-automation-node-types` antes de montar ou editar fluxo.** Ela devolve os tipos válidos de gatilho, ação e condição — é o que evita inventar tipo de nó que o backend recusa.
+
+### Ligar e desligar: cuidado com a fila
+
+`set-automation-status` muda o estado: `ACTIVE`, `PAUSED`, `DRAFT`, `INACTIVE`, `FINISHED`.
+
+**Pausar não cancela o que já está na fila.** Emails enfileirados continuam saindo depois do `PAUSED` — só param com `discard_pending: true`.
+
+Isso importa numa emergência ("pausa isso agora, tem erro no link"): pausar sem `discard_pending` deixa o erro sair para quem já estava na fila. Quando a intenção for parar de verdade, **pergunte explicitamente se descarta os pendentes** e diga o que cada opção faz.
+
+### Diagnóstico do fluxo
+
+| Pergunta | Tool |
+|---|---|
+| Onde os contatos estão desistindo? | `get-automation-step-metrics` |
+| Como vão as automações do projeto? | `get-automations-metrics` |
+| Quantas em cada estado? | `get-automations-status-metrics` |
+| O que mudou nessa automação? | `get-automation-history` |
+
+`get-automation-step-metrics` é o mais útil dos quatro: dá o funil nó a nó — quantos chegam e quantos convertem em cada passo, opcionalmente por janela de data. Fluxo que "não performa" quase sempre tem um nó específico onde todo mundo cai.
+
+`get-automation-history` responde "quem mexeu nisso e quando" — o primeiro lugar a olhar quando um fluxo mudou de comportamento sem ninguém assumir.

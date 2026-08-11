@@ -45,9 +45,12 @@ Comportamento verificado do produto. Cada um destes já custou um envio errado p
 - **Não envie `design` no template.** Mande só `html` e deixe o editor gerar. Passar o JSON do Unlayer à mão duplica o HTML escapado dentro do JSON — caro e fácil de corromper.
 - **Cheque pré-existência** antes de criar a campanha do dia: `list-campaigns` com `search` pela data ou nome, para não duplicar um disparo já agendado.
 - **`save-automation-flow` substitui o grafo inteiro.** Não é edição incremental — nós e arestas que você não mandar somem.
+- **Pausar automação não esvazia a fila.** Email já enfileirado continua saindo depois do `PAUSED`; só para com `discard_pending: true`. Numa emergência, pergunte explicitamente se descarta os pendentes.
+- **Template repetido precisa de Spintax.** Assunto e remetente idênticos fazem o Gmail agrupar os envios numa conversa só, que deriva para Promoções. A doutrina é 3+ variantes `{a|b|c}` em `subject` **e** `sender_name` para todo template que vai mais de uma vez para a mesma audiência.
+- **Veja o uso antes de destruir.** `get-segment-usage`, `get-template-usage` e `get-gallery-item-usage` mostram quem depende daquilo. Segmento que parece órfão costuma estar dentro de automação ativa.
 
 Detalhe por frente:
-[campanhas](references/campanhas.md) · [contatos e segmentos](references/contatos-segmentos.md) · [métricas e entregabilidade](references/metricas.md) · [push e automações](references/push-automacoes.md)
+[campanhas](references/campanhas.md) · [templates e conteúdo](references/templates.md) · [contatos, tags e segmentos](references/contatos-segmentos.md) · [métricas e entregabilidade](references/metricas.md) · [push e automações](references/push-automacoes.md)
 
 ## Guardrails — confirme o irreversível
 

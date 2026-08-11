@@ -2,7 +2,7 @@
   "name": "everinbox",
   "displayName": "Everinbox — Copilot",
   "description": "Copilot do connector Everinbox. Opera email marketing pelo MCP oficial: descobrir enterprise e projeto, criar e editar campanhas e templates, montar listas, segmentos e contatos, agendar e disparar, ler métricas e entregabilidade (Postmaster), e trabalhar com push e automações. Traz a ordem de descoberta, as armadilhas do schema que fazem um disparo sair errado e os guardrails do que é irreversível. Rascunho é livre; criar campanha, cancelar e deletar pedem confirmação explícita.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Everinbox",
     "url": "https://github.com/everinboxhq"
