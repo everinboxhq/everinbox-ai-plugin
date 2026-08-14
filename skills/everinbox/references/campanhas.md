@@ -1,72 +1,88 @@
-# Campanhas e templates
+# Campanhas — enviar
 
-## Os três tipos
+Uma campanha amarra um **template** a uma **audiência** e a um **quando**. É o
+envio em si. Tool: `create-campaign`. Antes de disparar de verdade, monte como
+rascunho/agendada e confirme com o cliente.
 
-| Tipo | O que é | Exigências |
-|---|---|---|
-| `regular` | Envio único | O básico |
-| `recurrent` | Envio repetido | `recurrence_config` (`weekdays` 0–6, `end_type`) + agendamento |
-| `ab_test` | Teste A/B | `ab_test` com 2 a 4 variantes + agendamento |
+## O que toda campanha precisa
 
-`recurrent` e `ab_test` **só existem agendados** — exigem `scheduled_time` e `type_send: "agendado_estrangulamento"`.
+`create-campaign` tem muitos campos obrigatórios; os que mais confundem:
 
-`end_type` da recorrência: `"never"` (infinito), `"date"` (com `end_date` futura) ou `"count"` (com `end_count`).
+- **Audiência — os dois arrays são sempre obrigatórios.** `list_contact_ids` e
+  `segment_ids` precisam existir na chamada; passe `[]` no que não usar. Pelo
+  menos um dos dois tem que ter item. Pode combinar lista + segmento.
+  - `list_contact_ids` usa **numeric_id** da lista.
+  - `segment_ids` usa **UUID** do segmento.
+- **`template_id` (UUID) + `template_version` (inteiro, ex: 1)** — ambos
+  obrigatórios.
+- **`custom_from_message`** — obrigatório; use `"custom"` se não tem valor
+  específico.
+- **`sender_email` / `sender_name`** — o remetente. `sender_name` pode ser `""`.
 
-No A/B: `sample_percentage` de 1 a 50, `test_duration` de `"5m"` a `"6h"`, `winning_metric` é `open_rate` ou `click_rate`. Vale definir `fallback_variant_label` — é a variante usada quando ninguém bate o `min_threshold`.
+## Tipo de envio × agendamento
 
-## Campos que se esquecem
+Dois eixos independentes: **quando** (`type_send`) e **o que** (`type`).
 
-- **`template_version`** é obrigatório e não tem padrão óbvio. Pegue do `get-template` (`current_version`).
-- **`custom_from_message`** é obrigatório; use `"custom"` quando não houver valor específico.
-- **`duration`** é a janela de estrangulamento (`"1h"`, `"30m"`). Não é o horário do envio.
-- **`sender_name`** aceita string vazia, mas remetente sem nome aparece feio na caixa.
-- `reply_to` é opcional e pode ser de outro domínio.
-- `audience_limit` corta a audiência num teto — útil para teste controlado.
+**Enviar agora (rascunho controlado):**
+```
+type: "regular"
+type_send: "imediato_estrangulamento"   // "estrangulamento" = envio com throttle
+status: "draft"
+```
 
-## Agendamento e fuso
+**Agendar para depois:**
+```
+type: "regular"
+type_send: "agendado_estrangulamento"
+scheduled_time: "2026-01-15T14:00:00.000Z"   // ISO 8601
+selected_timezone: "UTC-03:00"                // obrigatório ao agendar
+status: "scheduled"
+```
 
-`selected_timezone` vai como offset: `"UTC-03:00"`, `"UTC+01:00"`.
+- **`duration`** define a janela de throttle (ex: `"1h"`, `"30m"`): a plataforma
+  espalha o envio ao longo desse tempo em vez de despejar tudo de uma vez. Isso
+  é a rampa acontecendo no envio — mantenha uma janela em vez de disparo
+  instantâneo, principalmente com base grande.
+- **`list_mode`**: `"fixed"` congela a audiência no momento da criação
+  (recomendado para agendadas); `"variable"` resolve a audiência na hora do
+  envio.
 
-O `scheduled_time` é ISO 8601. **Confirme com a pessoa se o horário que ela falou já está no offset combinado** antes de criar — é o erro que manda a campanha três horas fora. Na resposta, sempre diga o horário local.
+## Recorrente e Teste A/B
 
-Cada projeto tem seu próprio `timezone` (veja em `list-projects`); não assuma que é o mesmo da pessoa.
+**Recorrente** (`type: "recurrent"`): repete em dias da semana. Exige
+`recurrence_config` com `weekdays` (0=domingo..6=sábado) e `end_type`
+(`never`/`date`/`count`), mais `scheduled_time` e `type_send` agendado.
 
-## `list_mode`
+**Teste A/B** (`type: "ab_test"`): exige `ab_test` com 2–4 variantes (cada uma
+com `variant_label` A–D + `template_id` + `template_version`),
+`sample_percentage` (1–50), `test_duration` e `winning_metric`
+(`open_rate`/`click_rate`). A plataforma envia para a amostra, escolhe a
+vencedora e manda para o resto. Também precisa de agendamento.
 
-- `"fixed"` — congela a audiência no momento da criação. Recomendado para agendado: o que você conferiu é o que sai.
-- `"variable"` — resolve no envio. A audiência pode ter mudado desde a criação.
+> O A/B é a *ferramenta* de teste. **O que** testar (qual assunto, qual ângulo)
+> é decisão do cliente.
 
-## Estados: o que dá para editar
+## Checklist antes de disparar
 
-`update-campaign` atualiza só os campos enviados, mas o estado manda:
+1. A audiência é o recorte certo? Confira a contagem (`preview-segment`).
+   Para os primeiros envios, é o segmento de engajados — não a base inteira.
+2. Assunto e remetente têm spintax se for envio repetido?
+3. O template tem rodapé + `[unsubscribe]`?
+4. Horário e timezone corretos? (Confirme o timezone do cliente; agendar em
+   UTC errado envia na hora errada.)
+5. **Cliente aprovou?** Só então mude para `sending`/confirme o agendamento.
 
-- Campanha **filha de recorrente** não é editável.
-- `dispatch_status: "success"` só aceita cancelamento.
-- **Recorrente** só é editável em `draft`.
-- Campanha **enviando** só aceita `status: "canceled"`.
+## Depois
 
-O enum de `status` em `update-campaign` é maior que no create — inclui `active`, `completed`, `paused`, `ab_test_awaiting`. **Leia o estado com `get-campaign` antes de tentar editar**; erro de estado costuma voltar sem explicação clara.
+- `list-campaigns`, `get-campaign` — estado.
+- `get-campaign-metrics`, `get-campaign-timeline` — resultado (ver
+  `references/metricas-e-entrega.md`).
+- `cancel-campaign` — cancela uma agendada antes de sair.
+- `update-campaign` / `duplicate-campaign` — ajustar ou reusar.
 
-## Criar muitas campanhas de uma vez
+## Não mexer (infra da everinbox)
 
-`create-campaigns-batch` cria de 1 a 100 campanhas numa chamada só. Existe por um motivo prático: **`create-campaign` é limitada a 1 requisição por segundo**, então criar em laço é lento e esbarra em throttling.
-
-Regras próprias do batch:
-
-- **Todas as campanhas são do mesmo projeto.** `project_id` (e `enterprise_id` opcional) vão **uma vez no topo** — não repita dentro de cada objeto.
-- Cada item segue exatamente as regras do `create-campaign`: os dois arrays de audiência, `template_version`, `custom_from_message`, e o mesmo par `type_send`/`status`.
-- **Sucesso parcial é o normal.** Uma campanha ruim não aborta as outras; cada uma tem sua transação. O resultado vem com status por índice e um resumo `{ total, created, failed }`.
-
-**Sempre leia o resultado item a item e relate os que falharam, com o erro.** Um batch que "funcionou" com 3 de 40 falhando é três disparos que não vão acontecer — e ninguém vai perceber até o dia.
-
-> Batch de 100 campanhas é 100 envios comprometidos de uma vez. Confirme a lista inteira antes de executar — resumida por nome, horário e audiência, não em JSON.
-
-## Sequência: montar e agendar uma campanha
-
-1. `list-projects` — pegue `id`, `numeric_id`, `timezone`, `sender_domain`.
-2. `list-campaigns` com `search` — confirme que o disparo não existe ainda.
-3. `list-templates` / `get-template` — pegue `template_id` e `current_version`.
-4. Audiência: `list-lists` ou `list-segments`; se for segmento novo, `preview-segment` antes de criar.
-5. **Mostre para a pessoa** projeto, audiência (com número de contatos), horário local, template e remetente. **Espere o ok.**
-6. `create-campaign`.
-7. `get-campaign` — confira a audiência resolvida. Se vier zero, pare e avise.
+`create-campaign` tem campos de roteamento de saída (pool de IP / provedor).
+Isso é infraestrutura interna da everinbox e **não** é alavanca do cliente:
+omita e a plataforma usa o padrão do projeto. O cliente controla audiência,
+conteúdo e ritmo; a entrega técnica é da plataforma.

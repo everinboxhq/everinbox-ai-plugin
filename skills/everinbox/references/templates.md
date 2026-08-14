@@ -1,79 +1,85 @@
-# Templates, conteúdo e imagens
+# Templates — montar o email
 
+O template é o email: HTML + assunto + nome do remetente. A copy e a oferta vêm
+do cliente; seu papel é garantir que o email seja **Gmail-friendly**, tenha as
+peças obrigatórias e não caia em armadilhas de entrega.
 
-Obrigatórios: `project_id`, `name`, `html`, `subject`, `sender_name`. A enterprise é auto-preenchida.
+Tool: `create-template`. Editar: `update-template`. Reusar: `duplicate-template`.
+Ver o HTML já salvo: `get-template` (o retorno de create/update **não** ecoa o
+HTML de volta).
 
-**Sobre o `design` (JSON do editor Unlayer): não envie.** Mandando só `html`, o design é gerado — um bloco único que o editor abre normalmente. Só passe `design` quando você tem um layout autoral do editor que precisa preservar literalmente (copiado de um `get-template`).
+## Campos e o que importa
 
-**A resposta do create/update é enxuta e não devolve `html` nem `design`.** Para ler o conteúdo, `get-template`.
+```
+create-template:
+  project_id: <UUID>
+  name: "<nome interno descritivo>"
+  subject: "<assunto>"
+  sender_name: "<nome que aparece como remetente>"
+  html: "<HTML completo do email>"
+  pre_header: "<texto de preview>"   // opcional, muito recomendado
+```
 
-## Merge tags: rode `list-merge-tags` antes de escrever o HTML
+- **Não mande o campo `design`.** A plataforma gera o JSON do editor visual a
+  partir do seu `html` sozinha. Passar `design` à mão significa duplicar o HTML
+  inteiro escapado dentro do JSON — caro e fácil de corromper. Só envie `design`
+  se você tem um layout autoral do editor que precisa preservar igual.
+- **`pre_header`** é o texto de preview que aparece na caixa depois do assunto.
+  Preencha — é espaço grátis de persuasão e melhora a taxa de abertura.
 
-A personalização é por tag entre colchetes (`[nome]`, `[email]`, `[data_de_hoje]`), dentro de `html`, `subject` ou `pre_header`.
+## Peças obrigatórias no HTML (compliance + entrega)
 
-**As tags disponíveis são do projeto, não universais.** `list-merge-tags` devolve as que existem de verdade ali — as de sistema **e** os campos customizados daquele projeto. Chame antes de gerar qualquer HTML: é o que impede inventar `[nome_completo]` ou `[primeiro_nome]`, que não existem e saem impressas literalmente no email.
+Todo template precisa ter, sem exceção:
 
-A resposta vem em dois grupos:
+1. **Link de descadastro:** a tag `[unsubscribe]` (ou `[descadastrar]`) dentro
+   do rodapé. É lei e é sinal de saúde para o provedor.
+2. **Identidade do remetente:** nome e **endereço físico/legal** do cliente no
+   rodapé.
+3. **Links válidos:** nada de `href="#"` ou link quebrado — provedores leem isso
+   como sinal ruim.
 
-- **`system`** — tags da plataforma. Algumas têm versão por idioma, e o `locale` indica o idioma do **valor renderizado**: `[dia_hoje]` → "segunda-feira", `[day_today]` → "Monday", `[dia_actual]` → "lunes". Tags com o mesmo `concept` apontam para a mesma informação em idiomas diferentes — **escolha a que bate com o idioma do template**, senão o email sai misturado. Tag sem `locale` rende igual em qualquer idioma (email, IDs, UTMs, dado cru do contato).
-- **`custom`** — campos criados pelo projeto, com o tipo e, em select/multi_select, as opções válidas.
+## HTML Gmail-friendly
 
-Algumas tags trazem **`recommended_html`**, um bloco pronto — é o caso do rodapé de descadastro. Use esse bloco como base em vez de escrever o seu.
+O Gmail (e Outlook) renderiza email como HTML dos anos 2000, não como página
+moderna. Para não quebrar:
 
-**O descadastro é obrigatório.** Template sem ele é problema de entregabilidade e de lei — sinalize antes de deixar seguir.
+- Layout em **tabelas** (`<table>`), não `flex`/`grid`.
+- **CSS inline** nos elementos, não `<style>` no topo (muitos clientes ignoram).
+- Largura máxima ~600px (`max-width`).
+- Imagens leves e sempre com `alt`; nunca um email só de imagem (vira spam).
+- Texto de verdade no corpo, não texto dentro de imagem.
 
-Ao explicar as tags para a pessoa, use linguagem natural ("o primeiro nome do contato"), não os nomes técnicos de categoria ou tipo de campo.
+## Merge tags (personalização)
 
-`pre_header` é o texto de preview no cliente de email. Vale a pena: é a segunda linha que a pessoa lê.
+Inserem dado do contato/data no assunto, corpo ou pre_header. As principais:
 
-## Imagens: a galeria do projeto
+- Contato: `[nome]`/`[name]`, `[first_name]`, `[email]`, `[cidade]`/`[city]`.
+- Data: `[data_de_hoje]`, `[dia_hoje]`, `[hora_agora]`, `[mes_de_hoje]`.
+- Especial: `[unsubscribe]`/`[descadastrar]`.
 
-`list-gallery-items` lista as imagens do projeto com busca por nome (`search`), filtro por `tags`, `mime_type` e data, e ordenação por `recently_used`, `recently_uploaded`, `most_used` ou `size_desc`. Cada item traz `url`, dimensões, tamanho, `used_count` e `last_used_at`.
+Personalizar o assunto com `[first_name]` costuma ajudar abertura — mas só se o
+dado existir para a maioria dos contatos; senão fica "Olá ,".
 
-Antes de subir imagem nova, **procure na galeria** — reaproveitar evita duplicata e mantém o peso do email baixo.
+## Spintax — evitar o agrupamento do Gmail
 
-`get-gallery-item-usage` mostra onde uma imagem está sendo usada. **Rode antes de apagar ou trocar**: imagem em uso em template ativo quebra o email de quem receber depois.
+Quando o mesmo assunto+remetente se repete, o Gmail agrupa numa thread e esconde
+as repetições. Para evitar, varie assunto e `sender_name` com **spintax**:
+`{opção A|opção B|opção C}`. A plataforma sorteia uma variante por contato,
+então cada envio parece distinto.
 
-`upload-gallery-image` sobe, `update-gallery-item` edita metadados e tags, `delete-gallery-item` apaga (confirme antes). Por padrão a listagem esconde arquivados e apagados.
+```
+subject: "{Sua fatura chegou|Novidade na sua conta|Dá uma olhada nisso}"
+sender_name: "{Ana da Empresa|Equipe Empresa|Empresa}"
+```
 
+Ferramentas de apoio: `analyze-template-variations` (conta as combinações do
+spintax) e `apply-template-variations`. Use pelo menos 3 variantes em templates
+que você vai enviar repetidamente.
 
-## Versões e remetentes
+> A *mecânica* do spintax é do produto. A escolha de **quais** ângulos e assuntos
+> testar é a estratégia do cliente — não invente ofertas por ele.
 
-`list-template-versions` mostra o histórico de versões de um template. Importa porque **campanha aponta para uma versão específica** (`template_version`): editar o template não muda o que uma campanha já agendada vai enviar, e uma campanha antiga pode estar presa numa versão velha.
+## Remetentes
 
-`list-template-senders` lista os remetentes já usados no projeto. Vale consultar antes de inventar um `sender_email` — remetente novo não tem histórico de reputação.
-
-`duplicate-template` copia; `duplicate-templates-batch` copia em lote; `rename-templates-batch` renomeia em lote. `delete-template` apaga — **rode `get-template-usage` antes**, porque template referenciado por campanha agendada ou automação ativa não deve sumir.
-
-## Como o template está performando
-
-| Pergunta | Tool |
-|---|---|
-| Como esse template performa no geral? | `get-template-metrics` |
-| Onde ele é usado? | `get-template-usage` |
-| Qual link está levando o clique? | `get-template-clicks-by-url` |
-| Uma versão é melhor que a outra? | `get-template-versions-metrics` |
-| Ele está desgastado? | `get-template-saturation` |
-
-`get-template-clicks-by-url` é o mais subutilizado: clique agregado esconde que 90% vai para um único link. Quando alguém pergunta "por que o CTR é bom mas ninguém converte", a resposta costuma estar aí.
-
-## Saturação: quando o vencedor cansa
-
-`get-template-saturation` mede o quanto um template está **queimado** de tanto ir para a mesma audiência — a fadiga do vencedor.
-
-O padrão é conhecido: o template campeão vira o default, roda toda semana, e o engajamento decai devagar o bastante para ninguém notar. Saturação alta é o sinal de que ele precisa **descansar ou ser renovado**, não ser disparado de novo igual.
-
-Duas saídas quando a saturação está alta: rotacionar a criação, ou expandir as variantes de Spintax do template.
-
-## Spintax: variação que protege a entrega
-
-Spintax é notação de variação no texto: `{Oi|Olá|E aí}`. A cada envio a plataforma sorteia uma opção, então cada email sai diferente.
-
-Isso não é firula de copy — é entregabilidade. **Assunto e remetente idênticos fazem o Gmail agrupar os envios numa mesma conversa**, e essa pilha deriva para Promoções ou Spam. Variar quebra o agrupamento e protege a taxa de abertura.
-
-**A doutrina: 3 ou mais variantes tanto no `subject` quanto no `sender_name`**, para qualquer template que vá para a mesma audiência mais de uma vez.
-
-- `analyze-template-variations` detecta os pontos de variação num texto (assunto, remetente, pre-header ou HTML) e devolve os grupos encontrados. Só precisa do `text` — não pede `project_id`.
-- `apply-template-variations` renderiza uma versão concreta a partir das escolhas.
-
-Ao montar template para envio recorrente, **verifique o Spintax antes de criar a campanha**. Template repetido sem variação é a causa silenciosa mais comum de abertura caindo sem motivo aparente.
+`list-template-senders` lista os `sender_name` já usados no projeto — útil para
+manter consistência e planejar a rotação de remetente do spintax.
