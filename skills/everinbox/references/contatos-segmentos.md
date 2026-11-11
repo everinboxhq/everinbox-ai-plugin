@@ -28,7 +28,7 @@
 - Dedup por email no servidor — não precisa limpar duplicata antes.
 - **Aceita só `email` e `name`.** Custom field não entra por aqui. Quem espera importar cidade, CPF ou plano junto vai se frustrar: avise antes, não depois.
 
-`export-list-contacts` faz o caminho inverso. `move-contacts` move entre listas — em volume, confirme antes.
+`export-list-contacts` faz o caminho inverso. `duplicate-contacts` copia os contatos de uma lista para uma lista de outro projeto (a origem não muda) — em volume, confirme antes.
 
 ## Regras de segmento
 

@@ -1,6 +1,6 @@
 # Manifesto de tools do connector Everinbox
 # Fonte: https://core.mcp.everinbox.com.br/mcp
-# Atualizado em: 2026-08-11 — 128 tools
+# Atualizado em: 2026-11-11 — 128 tools
 # Para atualizar: veja scripts/check-coverage.mjs
 
 add-contacts-to-tag
@@ -39,6 +39,7 @@ delete-tag
 delete-template
 duplicate-automation
 duplicate-automations-batch
+duplicate-contacts
 duplicate-segment
 duplicate-tag
 duplicate-template
@@ -109,7 +110,6 @@ list-template-senders
 list-template-versions
 list-templates
 map-postmaster-domain
-move-contacts
 preview-segment
 recalculate-segment
 remove-contacts-from-tag
