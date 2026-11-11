@@ -64,7 +64,7 @@ Rascunhar é livre. **Antes de qualquer coisa que toque inbox real ou destrua da
 | `create-template`, `update-template`, `duplicate-template` | **`update-campaign`** em campanha agendada ou no ar |
 | `create-list`, `create-segment`, `recalculate-segment` | **`cancel-campaign`** |
 | `import-contacts` (dedup no servidor) | **`delete-campaign`**, **`delete-contact`**, `delete-gallery-item` — e as versões `-batch` |
-| `upload-gallery-image`, `update-gallery-item`, `create-push-tag` | **`move-contacts`** em volume · **`update-segment`** com campanha agendada apontando pra ele · **automação ativa** |
+| `upload-gallery-image`, `update-gallery-item`, `create-push-tag` | **`duplicate-contacts`** em volume · **`update-segment`** com campanha agendada apontando pra ele · **automação ativa** |
 
 **Sobre as tools `-batch`.** Boa parte das operações tem versão em lote (`create-campaigns-batch`, `delete-campaigns-batch`, `duplicate-templates-batch`, `rename-templates-batch`, `create`/`update`/`delete-automation-nodes-batch`). Elas existem porque as tools unitárias são limitadas a 1 requisição por segundo — em volume, o laço é lento e esbarra em throttling.
 
