@@ -66,6 +66,7 @@ Para nó isolado, as tools de nó são mais seguras: `create-automation-node`, `
 | `get-automation-flow`, métricas de automação | `update`/`delete-automation-node` em fluxo **ativo** |
 | | **`set-automation-status`** — ligar, e principalmente pausar com `discard_pending` |
 | | `delete-automation`, `delete-push-campaign` |
+| | `create-automation-enrollment` (põe contatos no fluxo) e **`cancel-automation-enrollment`** |
 
 Ao mexer em automação ativa, diga o que vai mudar em linguagem de fluxo ("o ramo de quem não abriu em 3 dias passa a esperar 5"), não em JSON. Quem aprova precisa entender o efeito, não o payload.
 
@@ -95,3 +96,14 @@ Isso importa numa emergência ("pausa isso agora, tem erro no link"): pausar sem
 `get-automation-step-metrics` é o mais útil dos quatro: dá o funil nó a nó — quantos chegam e quantos convertem em cada passo, opcionalmente por janela de data. Fluxo que "não performa" quase sempre tem um nó específico onde todo mundo cai.
 
 `get-automation-history` responde "quem mexeu nisso e quando" — o primeiro lugar a olhar quando um fluxo mudou de comportamento sem ninguém assumir.
+
+## Inscrever contatos em massa numa automação
+
+`create-automation-enrollment` inscreve um segmento ou uma lista (`source_type` `segment` ou `list`, com o `numeric_id` em `source_id`) numa automação, liberando aos poucos em `rate_per_hour` no nó de gatilho escolhido (precisa ser gatilho de contato daquela automação).
+
+- A amostra é **congelada no início do job**: sorteio por padrão (ou por id, com `random_sample=false`), até `max_contacts`, ou a origem inteira se omitido. O segmento mudar depois não altera a amostra.
+- Cada contato entra pelas regras normais do gatilho: modo de entrada, cooldown, frequency cap de entrada e cobrança valem como em qualquer gatilho.
+- Só libera enquanto a automação está `ACTIVE`. Pausada, o job espera e ninguém se perde.
+- Só um job ativo por automação: o segundo é recusado (409) até o primeiro terminar ou ser cancelado.
+
+`list-automation-enrollments` mostra os últimos 20 jobs e `get-automation-enrollment` acompanha um (liberados de total, taxa, erro). **`cancel-automation-enrollment`**: quem já foi liberado fica na automação, os restantes não entram. Confirme antes.

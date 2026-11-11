@@ -8,6 +8,10 @@
 - Tags — CRUD e o caminho certo para volume
 - Ciclo de vida do segmento — uso, status, histórico, antes de destruir
 - Frequency cap — os dois caminhos e por que os campos não batem
+- Frequency cap do projeto: vale para todo envio
+- Custom fields: definição e valor por contato
+- Gerir listas: arquivar, apagar, esvaziar
+- Lote: criar e duplicar em volume
 
 ## Lista tem dois IDs
 
@@ -27,6 +31,10 @@
 - 1 a 10.000 contatos por chamada. Base maior, quebre em lotes.
 - Dedup por email no servidor — não precisa limpar duplicata antes.
 - **Aceita só `email` e `name`.** Custom field não entra por aqui. Quem espera importar cidade, CPF ou plano junto vai se frustrar: avise antes, não depois.
+
+`import-contacts-batch` importa em até 10 listas numa chamada e devolve um `job_id` **por lista**: acompanhe cada um no `get-import-status`. Sucesso parcial é normal, leia item a item.
+
+Import com verificação Sentinel (`sentinel_verify=true`) tem fluxo próprio: veja [Sentinel](sentinel.md).
 
 `export-list-contacts` faz o caminho inverso. `duplicate-contacts` copia os contatos de uma lista para uma lista de outro projeto (a origem não muda) — em volume, confirme antes.
 
@@ -76,19 +84,20 @@ Operadores por tipo:
 
 `update-segment` altera as regras de um segmento que já existe. **Cuidado com segmento em uso:** campanha agendada com `list_mode: "variable"` resolve a audiência no envio — mexer na regra muda quem vai receber, sem aviso. Antes de editar, verifique se há campanha agendada apontando para ele; se houver, `preview-segment` com a regra nova e mostre a diferença de tamanho antes de salvar.
 
+`get-contact` traz o perfil de um contato (email, nomes, validação, custom fields, UTMs, tags, listas). Passe **um só** entre `contact_id` (id numérico global) e `email` (busca exata, sem diferenciar maiúsculas; 404 = nenhum contato do projeto com esse email). Para descobrir ids: `export-list-contacts` ou `get-tag-contacts`.
+
 Para apagar contato: `delete-contact` e `delete-contacts-batch`. Não têm volta — confirme sempre, e prefira mover para uma lista de descarte quando a intenção for só tirar de circulação.
 
 ## Tags
 
 Tag é rótulo de contato — a forma mais leve de agrupar sem criar lista nova. Entram em regra de segmento via `contact.tag`.
 
-CRUD: `list-tags`, `get-tag`, `create-tag`, `update-tag`, `duplicate-tag`, `delete-tag`.
+CRUD: `list-tags`, `get-tag`, `create-tag`, `update-tag`, `duplicate-tag`, `delete-tag`. Em volume: `create-tags-batch` (1 a 25; nome de 3 a 50 caracteres, só letras, números, hífen e sublinhado, sem espaço).
 
 Para ligar contato e tag existem dois caminhos, e escolher errado custa chamadas:
 
-- **`assign-tags-to-contacts`** — várias tags em vários contatos, numa chamada. É o caminho certo para volume.
-- **`add-contacts-to-tag`** / **`remove-contacts-from-tag`** — uma tag por vez.
-- **`remove-tags-from-contacts`** — o inverso do assign, em lote.
+- **`assign-tags-to-contacts`**: uma ou várias tags em um ou vários contatos, numa chamada. É o caminho certo, inclusive para uma tag só.
+- **`remove-tags-from-contacts`**: o inverso, também com uma ou várias tags.
 
 **Os IDs aqui são numéricos**, tanto `contact_ids` quanto `tag_ids` — mesma regra dos segmentos. IDs muito grandes podem vir como string numérica; UUID não serve.
 
@@ -109,6 +118,8 @@ Antes de apagar uma tag, lembre que ela pode estar dentro de regra de segmento a
 
 `duplicate-segment` é o caminho seguro para experimentar regra nova sem mexer no que está em uso. `archive-segments` tira de circulação sem destruir; `delete-segment` apaga (confirme, e só depois de ver o `usage`).
 
+Regra por localização ou UTM do contato: rode antes `list-location-values` (estado, país ou fuso, com `search`) ou `list-utm-values` (valores de uma coluna `utm_*`). A regra casa **valor exato**, e a de UTM diferencia maiúsculas: valor chutado não casa ninguém. `list-utm-values` é a origem do contato, não o UTM de um link dentro do email (esse é `get-utm-metrics`).
+
 Segmento grande não fica pronto na hora: **`get-segment-status` antes de usar** em campanha, senão você agenda em cima de um segmento ainda processando.
 
 ## Frequency cap: dois caminhos, campos diferentes
@@ -128,3 +139,31 @@ Use a tool dedicada para mexer só no cap sem tocar nas regras do segmento. Ela 
 O cap inline **só persiste com `enabled: true`** — mandar `enabled: false` ou omitir limpa a configuração.
 
 Quando a audiência entregue vier menor que a esperada, cheque `get-campaign-frequency-cap-blocked` antes de procurar bug: pode ser o cap funcionando como configurado.
+
+## Frequency cap do projeto
+
+Além do cap por segmento, o projeto tem um cap próprio: o máximo de emails que **um contato** recebe por hora e por dia, somando toda campanha e automação do projeto. `get-project-frequency-cap` lê; `set-project-frequency-cap` define e **substitui os dois limites de uma vez**: envie sempre `max_per_hour` e `max_per_day`, com número para limitar e `null` para deixar sem limite (leia o atual antes, para não apagar o que já estava); `delete-project-frequency-cap` desliga o cap do projeto sem tocar nos caps de segmento.
+
+**Set e delete mudam todo envio do projeto daqui para frente.** Confirme os números com a pessoa antes.
+
+## Custom fields
+
+`list-custom-fields` traz as definições (slug, tipo, opções). A definição do campo e o valor de cada contato são coisas separadas.
+
+- `create-custom-field`: o slug vira a merge tag `[slug]` e a chave do valor no contato. Rode `list-custom-fields` antes: slug já usado é recusado, merge tags nativas (`nome`, `email` e afins) são reservadas, `select` e `multi_select` exigem `options`, e o projeto aceita no máximo 200 campos.
+- `update-custom-field`: muda nome de exibição, opções, obrigatoriedade, métricas ou o papel de cidade. Slug e tipo não mudam; `options` substitui a lista inteira.
+- `delete-custom-field`: **sem volta**, e a merge tag `[slug]` para de resolver nos emails que a usam. Confira segmentos e templates antes e confirme. Exige papel OWNER ou MANAGER.
+- `set-contact-custom-fields`: grava valores em **um** contato, com merge (o que você não manda fica como está, `null` limpa). Valor inválido ou slug desconhecido **não derruba a chamada**: volta em `errors` enquanto os válidos são salvos, então leia o resultado.
+
+## Gerir listas
+
+- `update-list`: renomeia, bloqueia ou desbloqueia (`status` `active` ou `blocked`) ou marca como seedlist. `is_seed` só liga: seedlist nunca volta a ser lista normal. Lista interna não é editável.
+- `archive-lists`: esconde (ou restaura, com `archived=false`) até 100 listas sem apagar nada. É o que se usa quando a pessoa só quer tirar a lista de vista.
+- **`delete-lists`**: apaga até 100 listas (os contatos não são apagados), **mas cancela campanhas que miravam só essas listas, pausa automações que as usam e tira as listas da audiência das outras campanhas**. Não há como desfazer. Prefira `archive-lists` e confirme sempre, dizendo o que será cancelado e pausado.
+- **`clear-list`**: tira contatos da lista e mantém a lista. Por padrão tira **todos**, e as associações não voltam. Dá para restringir a um critério só: `only_cancelled=true` ou `sentinel_status="undeliverable"`. Lista interna não pode ser esvaziada. Confirme sempre.
+
+## Lote: criar e duplicar em volume
+
+`create-lists-batch` e `create-segments-batch` criam de 1 a 25 por chamada, `duplicate-segments-batch` e `duplicate-tags-batch` duplicam até 50. Todos devolvem um resumo mais CSV por item, e sucesso parcial é o normal: relate o que falhou.
+
+`duplicate-segments-batch` entre projetos **tira as regras de pertencimento** (`contact.list`, `contact.tag`, `contact.campaign`, `contact.automation`, `contact.segment`), porque elas apontam IDs numéricos do projeto de origem. Sobram só regras que não dependem do projeto (engajamento, domínio, RFM, criação), e a cópia casa **outra audiência**. Avise antes.

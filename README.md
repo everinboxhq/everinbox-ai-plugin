@@ -73,7 +73,8 @@ skills/everinbox/
   SKILL.md              descoberta, gotchas, guardrails
   references/           detalhe por frente, carregado sob demanda
     campanhas.md · templates.md · contatos-segmentos.md
-    metricas.md · push-automacoes.md
+    metricas.md · push-automacoes.md · envio.md
+    sentinel.md · momentum.md · financeiro.md
 evals/                  cenários de avaliação da skill
 tools/manifest.txt      tools do connector
 scripts/                checagem de cobertura

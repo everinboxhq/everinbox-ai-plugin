@@ -70,3 +70,7 @@ Regras próprias do batch:
 5. **Mostre para a pessoa** projeto, audiência (com número de contatos), horário local, template e remetente. **Espere o ok.**
 6. `create-campaign`.
 7. `get-campaign` — confira a audiência resolvida. Se vier zero, pare e avise.
+
+## Duplicar campanha
+
+`duplicate-campaign` cria um **rascunho** copiando a campanha, e `duplicate-campaigns-batch` faz o mesmo para até 100. Só funciona **dentro do mesmo projeto**: a campanha aponta para template, listas e segmentos que são do projeto. Não é destrutivo, mas revise o rascunho antes de agendar.

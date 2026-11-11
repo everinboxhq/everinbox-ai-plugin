@@ -1,6 +1,6 @@
 ---
 name: everinbox
-description: Operação de email marketing na Everinbox pelo connector oficial — descobrir enterprise e projeto, criar e editar campanhas e templates, montar listas, segmentos e contatos, importar base, agendar e disparar, cancelar, ler métricas e entregabilidade (Postmaster, spam rate, reputação), e trabalhar com push e automações. Acione para qualquer pedido sobre campanha de email, template ou HTML de email, merge tag, personalização, lista de contatos, importação, segmento (regra, engajamento, RFM, domínio, custom field), agendamento e fuso, teste A/B, campanha recorrente, taxa de abertura ou clique, bounce, descadastro, spam, entregabilidade, reputação de domínio, push notification, ou fluxo de automação — e sempre que a pessoa mencionar Everinbox. Rascunho é livre; criar campanha (que agenda ou dispara), cancelar, deletar, mover contatos em volume e mexer em automação ativa pedem confirmação explícita. Responda em PT-BR.
+description: Operação de email marketing na Everinbox pelo connector oficial — descobrir enterprise e projeto, criar e editar campanhas e templates, montar listas, segmentos e contatos, importar base, agendar e disparar, cancelar, ler métricas e entregabilidade (Postmaster, spam rate, reputação), e trabalhar com push e automações. Acione para qualquer pedido sobre campanha de email, template ou HTML de email, merge tag, personalização, lista de contatos, importação, segmento (regra, engajamento, RFM, domínio, custom field), agendamento e fuso, teste A/B, campanha recorrente, taxa de abertura ou clique, bounce, descadastro, spam, entregabilidade, reputação de domínio, push notification, fluxo de automação, configurar envio (domínio de envio, IP, pool, reverse DNS, criar projeto), verificação Sentinel, Momentum, receita financeira, Bounce Guard, frequency cap ou campo customizado — e sempre que a pessoa mencionar Everinbox. Rascunho é livre; criar campanha (que agenda ou dispara), cancelar, deletar, mover contatos em volume, mexer em automação ativa, gastar crédito (Sentinel), pedir IP e mudar como o projeto envia pedem confirmação explícita. Responda em PT-BR.
 ---
 
 # Everinbox — Copilot
@@ -52,7 +52,7 @@ Comportamento verificado do produto. Cada um destes já custou um envio errado p
 - **Veja o uso antes de destruir.** `get-segment-usage`, `get-template-usage` e `get-gallery-item-usage` mostram quem depende daquilo. Segmento que parece órfão costuma estar dentro de automação ativa.
 
 Detalhe por frente:
-[campanhas](references/campanhas.md) · [templates e conteúdo](references/templates.md) · [contatos, tags e segmentos](references/contatos-segmentos.md) · [métricas e entregabilidade](references/metricas.md) · [push e automações](references/push-automacoes.md)
+[campanhas](references/campanhas.md) · [templates e conteúdo](references/templates.md) · [contatos, tags e segmentos](references/contatos-segmentos.md) · [métricas e entregabilidade](references/metricas.md) · [push e automações](references/push-automacoes.md) · [configurar envio (domínios, IPs, projeto)](references/envio.md) · [Sentinel](references/sentinel.md) · [Momentum](references/momentum.md) · [financeiro](references/financeiro.md)
 
 ## Guardrails — confirme o irreversível
 
@@ -60,13 +60,22 @@ Rascunhar é livre. **Antes de qualquer coisa que toque inbox real ou destrua da
 
 | Livre (execute) | Confirme antes |
 |---|---|
-| `list-*`, `get-*`, `preview-segment`, métricas, Postmaster, dashboard | **`create-campaign`** e **`create-campaigns-batch`** (agendam ou disparam) |
-| `create-template`, `update-template`, `duplicate-template` | **`update-campaign`** em campanha agendada ou no ar |
-| `create-list`, `create-segment`, `recalculate-segment` | **`cancel-campaign`** |
-| `import-contacts` (dedup no servidor) | **`delete-campaign`**, **`delete-contact`**, `delete-gallery-item` — e as versões `-batch` |
+| `list-*`, `get-*`, `preview-segment`, métricas, Postmaster, dashboard, financeiro | **`create-campaign`** e **`create-campaigns-batch`** (agendam ou disparam) |
+| `create-template`, `update-template`, `duplicate-template`, `create-template-version` | **`update-campaign`** em campanha agendada ou no ar |
+| `create-list`, `update-list`, `archive-lists`, `create-segment`, `recalculate-segment` | **`cancel-campaign`** |
+| `import-contacts`, `import-contacts-batch` (dedup no servidor) | **`delete-campaign`**, **`delete-contact`**, `delete-gallery-item` — e as versões `-batch` |
 | `upload-gallery-image`, `update-gallery-item`, `create-push-tag` | **`duplicate-contacts`** em volume · **`update-segment`** com campanha agendada apontando pra ele · **automação ativa** |
+| `create-custom-field`, `update-custom-field`, `set-contact-custom-fields` | **`delete-lists`** (cancela campanhas que só miravam essas listas e pausa automações que as usam) · **`clear-list`** (tira todos os contatos, sem volta) · **`delete-custom-field`** (a merge tag para de resolver) |
+| `duplicate-campaign`, `duplicate-segments-batch`, `duplicate-tags-batch` (entre projetos, avise que as regras de pertencimento caem) | **`send-test-email`** (email real) · **`replace-template-links`** com `dry_run: false` |
+| `get-sentinel-*`, `preview-sentinel-verification`, `get-import-verification`, `get-soft-bounce-unblock-preview`, `get-unblock-status` | **`create-sentinel-verification-job`** (gasta crédito) · **`update-sentinel-settings`** (ligar `verify_api_leads` gasta crédito em cada lead novo e exige limite diário) · **`import-without-verification`** (email inválido entra na base) · `confirm-import-verification` |
+| `add-sending-domain`, `verify-sending-domain`, `list-sending-*`, `verify-ip-reverse-dns` | **`create-project`** quando provisiona o primeiro IP (cobrado por mês) · **`request-sending-ip`** (cobrado por mês, com `request_id`) · **`set-sending-ip-pools`** (muda a reputação de todos os projetos do pool) · **`delete-sending-domain`** · `set-ip-reverse-dns` |
+| `get-project-frequency-cap`, `get-bounce-guard` | **`set-project-frequency-cap`** e **`delete-project-frequency-cap`** (mudam todo envio do projeto) · **`update-bounce-guard`** (decide quando campanha é cancelada sozinha) · **`unblock-soft-bounced-contacts`** (contato volta a receber email) |
+| `get-momentum-*`, `list-momentum-*`, `quote-momentum-campaign` | **Momentum:** `set-momentum-sender`, **`remove-momentum-sender`**, **`invite-enterprise-to-momentum-plan`**, `cancel-momentum-plan-invite`, **`answer-momentum-plan-invite`**, **`remove-enterprise-from-momentum-plan`**, **`set-momentum-enterprise-cap`** |
+| `list-automation-enrollments`, `get-automation-enrollment` | **`create-automation-enrollment`** (põe contatos no fluxo) · **`cancel-automation-enrollment`** |
 
-**Sobre as tools `-batch`.** Boa parte das operações tem versão em lote (`create-campaigns-batch`, `delete-campaigns-batch`, `duplicate-templates-batch`, `rename-templates-batch`, `create`/`update`/`delete-automation-nodes-batch`). Elas existem porque as tools unitárias são limitadas a 1 requisição por segundo — em volume, o laço é lento e esbarra em throttling.
+Qualquer tool cuja descrição diga irreversível, cobrado, ou que envie email real entra do lado "confirme antes", mesmo que não esteja na tabela.
+
+**Sobre as tools `-batch`.** Boa parte das operações tem versão em lote (`create-campaigns-batch`, `delete-campaigns-batch`, `duplicate-templates-batch`, `rename-templates-batch`, `create`/`update`/`delete-automation-nodes-batch`, `create-lists-batch`, `create-segments-batch`, `create-tags-batch`, `create-templates-batch`, `import-contacts-batch`). Elas existem porque as tools unitárias são limitadas a 1 requisição por segundo — em volume, o laço é lento e esbarra em throttling.
 
 Duas regras valem para todas:
 
