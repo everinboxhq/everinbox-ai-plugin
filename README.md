@@ -77,7 +77,6 @@ skills/everinbox/
     sentinel.md · momentum.md · financeiro.md
 evals/                  cenários de avaliação da skill
 tools/manifest.txt      tools do connector
-scripts/                checagem de cobertura
 ```
 
 ## Contribuindo
@@ -86,13 +85,18 @@ Ao alterar o plugin, **suba a `version` no `.claude-plugin/plugin.json`** — se
 
 ### Quando o connector ganhar tools novas
 
-`tools/manifest.txt` lista as tools do connector. O script `scripts/check-coverage.mjs` compara a documentação contra ele, nos dois sentidos: tool do manifesto que ninguém documentou, e nome citado que não existe (erro de digitação faz o Claude tentar chamar uma tool inexistente, e nada avisa).
+`tools/manifest.txt` lista as tools do connector. A documentação é conferida contra ele nos dois sentidos: tool do manifesto que ninguém documentou, e nome citado que não existe (erro de digitação faz o Claude tentar chamar uma tool inexistente, e nada avisa).
 
 O endpoint exige autenticação, então não dá para enumerar automaticamente. Com o connector ligado no Claude Code, peça a lista de tools, atualize o manifesto (um nome por linha) e documente o que entrou:
 
 ```bash
-node scripts/check-coverage.mjs
+grep -v '^#' tools/manifest.txt | grep . | while read -r t; do grep -rqF -- "$t" skills README.md || echo "sem documentação: $t"; done
+grep -rhoE '`[a-z][a-z0-9]*(-[a-z0-9]+)+`' skills README.md | tr -d '`' | sort -u | grep -vxFf tools/manifest.txt
 ```
+
+A primeira linha não pode imprimir nada. A segunda só pode imprimir `everinbox-ai`, `everinbox-ai-plugin`, `claude-code` e `text-plain`, que não são tools.
+
+O repositório não guarda scripts: o diretório de plugins da Anthropic só aceita Markdown, texto, JSON, YAML e imagem.
 
 Antes de abrir PR:
 
