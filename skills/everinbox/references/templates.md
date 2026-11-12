@@ -77,3 +77,24 @@ Isso não é firula de copy — é entregabilidade. **Assunto e remetente idênt
 - `apply-template-variations` renderiza uma versão concreta a partir das escolhas.
 
 Ao montar template para envio recorrente, **verifique o Spintax antes de criar a campanha**. Template repetido sem variação é a causa silenciosa mais comum de abertura caindo sem motivo aparente.
+
+## Versão, lote, links e teste
+
+- `create-template-version` cria uma nova versão e **guarda a atual no histórico**. Use quando a pessoa quer mudar o template sem perder o que ele era: `update-template` edita a versão atual no lugar e não guarda cópia. Com `html` (e opcionalmente `subject`, `sender_name`, `pre_header`) a versão já nasce com o conteúdo novo; sem eles, tira um snapshot para editar depois.
+- `create-templates-batch` cria vários (1 a 25) com sucesso parcial. Aceita `templates[]` **ou** `sheet_url` (planilha Google compartilhada como "qualquer pessoa com o link", uma linha por template, cabeçalho `name`, `sender_name`, `subject`, `html`, `pre_header`). Prefira a planilha quando o HTML for longo, para não retranscrever. Linha cujo nome já existe no projeto é pulada, então rodar de novo é seguro; se vier `not_started` maior que zero, chame de novo com a mesma planilha. Célula tem no máximo 50.000 caracteres.
+- `get-templates-batch-metrics` traz as métricas de até 100 templates numa chamada. Use no lugar de `get-template-metrics` em laço, que estoura timeout.
+
+### Trocar links sem passar o HTML pelo modelo
+
+`replace-template-links` troca links em 1 a 25 templates do lado do servidor, no `html` e no design do editor, sem devolver o HTML. É o caminho certo para trocar link: **não** use `get-template` mais `update-template` para isso.
+
+- Regra `exact` (`de` e `para`): troca a URL inteira; query string e fragmento depois dela são mantidos, a menos que `para` traga o seu.
+- Regra `contains`: todo link clicável cuja URL contém o texto vira exatamente `para`, e a query string antiga cai.
+- Regra `external`: todo link http(s) clicável vira `para`.
+- Links de sistema (`[descadastrar]`, `[unsubscribe]`), `mailto:`, âncoras e imagens nunca são trocados.
+- `dry_run` vale `true` por padrão quando há regra `contains` ou `external`: mostre à pessoa os links casados, espere o ok e chame de novo com `dry_run: false`.
+- Salvar edita a versão atual **no lugar**, sem criar versão nova. Quem quiser preservar a anterior cria a versão antes com `create-template-version`.
+
+### Email de teste
+
+`send-test-email` envia um **email real** de um template salvo, pelo pipeline de produção, para um ou mais destinatários. É irreversível: confirme destinatários antes. Renderiza a **versão atual salva**, então edição não persistida não aparece. Assunto, remetente e pre-header podem ser sobrescritos; o `sender_email` precisa ser o do projeto ou um remetente registrado.
