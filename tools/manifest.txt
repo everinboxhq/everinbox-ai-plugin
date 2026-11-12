@@ -1,7 +1,7 @@
 # Manifesto de tools do connector Everinbox
 # Fonte: https://core.mcp.everinbox.com.br/mcp
 # Atualizado em: 2026-11-11 — 211 tools
-# Para atualizar: veja scripts/check-coverage.mjs
+# Para atualizar: veja o README
 
 add-push-domain
 add-sending-domain
